@@ -1,0 +1,12 @@
+.DS_Store
+
+# Build outputs
+*.o
+wserver
+wclient
+spin.cgi
+
+# Editor and OS backups
+*~
+*.swp
+*.swo
