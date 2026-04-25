@@ -11,6 +11,12 @@
 static void cleanup() {
     unlink("test_blocks.db");
     unlink(SCHEMA_FILE);
+    unlink("movies.db");
+}
+
+static void cleanup_sql_tables() {
+    unlink(SCHEMA_FILE);
+    unlink("movies.db");
 }
 
 /* ── Test 1: init_block fills with dots and sets XXXX ── */
@@ -152,6 +158,74 @@ static void test_schema_create_find() {
     printf("test_schema_no_dup    : %s\n", rc_dup == -1 ? PASS : FAIL);
 }
 
+/* ── SQL tests ───────────────────────────────────────── */
+
+static void test_sql_create() {
+    char resp[8192];
+
+    cleanup_sql_tables();
+
+    int rc = sql_create(
+        "CREATE TABLE movies (id smallint, title char(30), length int);",
+        resp
+    );
+
+    Schema found;
+    int found_rc = schema_find("movies", &found);
+    int ok = (rc == 0) && (found_rc == 0) && (found.ncols == 3) && (found.row_width == 42);
+
+    printf("test_sql_create       : %s\n", ok ? PASS : FAIL);
+}
+
+static void test_sql_insert_select() {
+    char resp[8192];
+
+    cleanup_sql_tables();
+    (void)sql_create("CREATE TABLE movies (id smallint, title char(30), length int);", resp);
+
+    int rc_ins = sql_insert("INSERT INTO movies VALUES (2, 'Lyle, Lyle, Crocodile', 100);", resp);
+    int rc_sel = sql_select("SELECT id,title,length FROM movies WHERE id = 2;", resp);
+
+    int has_id = (strstr(resp, "0002") != NULL);
+    int has_title = (strstr(resp, "Lyle, Lyle, Crocodile") != NULL);
+    int has_len = (strstr(resp, "00000100") != NULL);
+    int ok = (rc_ins == 0) && (rc_sel == 0) && has_id && has_title && has_len;
+
+    printf("test_sql_insert_select: %s\n", ok ? PASS : FAIL);
+}
+
+static void test_sql_update() {
+    char resp[8192];
+
+    cleanup_sql_tables();
+    (void)sql_create("CREATE TABLE movies (id smallint, title char(30), length int);", resp);
+    (void)sql_insert("INSERT INTO movies VALUES (2, 'Lyle, Lyle, Crocodile', 100);", resp);
+
+    int rc_upd = sql_update("UPDATE movies SET length = 150 WHERE id = 2;", resp);
+    int rc_sel = sql_select("SELECT length FROM movies WHERE id = 2;", resp);
+
+    int ok = (rc_upd == 0) && (rc_sel == 0) && (strstr(resp, "00000150") != NULL);
+    printf("test_sql_update       : %s\n", ok ? PASS : FAIL);
+}
+
+static void test_sql_delete() {
+    char resp[8192];
+
+    cleanup_sql_tables();
+    (void)sql_create("CREATE TABLE movies (id smallint, title char(30), length int);", resp);
+    (void)sql_insert("INSERT INTO movies VALUES (2, 'Lyle, Lyle, Crocodile', 100);", resp);
+    (void)sql_insert("INSERT INTO movies VALUES (3, 'Wicked', 150);", resp);
+
+    int rc_del = sql_delete("DELETE FROM movies WHERE id = 2;", resp);
+    int rc_sel = sql_select("SELECT id,title,length FROM movies;", resp);
+
+    int missing_deleted = (strstr(resp, "0002") == NULL);
+    int kept_other = (strstr(resp, "0003") != NULL) && (strstr(resp, "Wicked") != NULL);
+    int ok = (rc_del == 0) && (rc_sel == 0) && missing_deleted && kept_other;
+
+    printf("test_sql_delete       : %s\n", ok ? PASS : FAIL);
+}
+
 int main() {
     printf("=== db_io unit tests ===\n");
     cleanup();
@@ -163,6 +237,10 @@ int main() {
     test_init_schema();
     test_schema_encode_parse();
     test_schema_create_find();
+    test_sql_create();
+    test_sql_insert_select();
+    test_sql_update();
+    test_sql_delete();
 
     cleanup();
     printf("========================\n");
