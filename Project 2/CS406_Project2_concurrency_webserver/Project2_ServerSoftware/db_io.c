@@ -81,7 +81,10 @@ void db_set_next(char *buf, int next_idx) {
         return;
     }
 
-    snprintf(buf + BLOCK_PAYLOAD, 5, "%04d", next_idx);
+    /* The on-disk next pointer is exactly 4 bytes, so avoid writing a NUL past block end. */
+    char next[5];
+    snprintf(next, sizeof(next), "%04d", next_idx);
+    memcpy(buf + BLOCK_PAYLOAD, next, 4);
 }
 
 void db_init_block(char *buf) {
