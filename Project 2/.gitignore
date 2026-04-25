@@ -5,6 +5,8 @@
 wserver
 wclient
 spin.cgi
+sql_server.cgi
+db_test
 
 # Editor and OS backups
 *~
