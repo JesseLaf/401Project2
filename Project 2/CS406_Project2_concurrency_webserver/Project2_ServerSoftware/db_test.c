@@ -2,6 +2,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "db_io.h"
+#include "sql.h"
 
 #define PASS "\033[32mPASS\033[0m"
 #define FAIL "\033[31mFAIL\033[0m"
@@ -98,6 +99,59 @@ static void test_init_schema() {
     close(fd);
 }
 
+/* ── Test 6: schema_encode and schema_parse round-trip ── */
+static void test_schema_encode_parse() {
+    Schema s;
+    strcpy(s.name, "movies");
+    s.ncols = 3;
+    strcpy(s.cols[0].name, "id");    s.cols[0].type = TYPE_SMALLINT; s.cols[0].width = 4;
+    strcpy(s.cols[1].name, "title"); s.cols[1].type = TYPE_CHAR;     s.cols[1].width = 30;
+    strcpy(s.cols[2].name, "length");s.cols[2].type = TYPE_INTEGER;  s.cols[2].width = 8;
+    s.row_width = 42;
+
+    char buf[BLOCK_PAYLOAD];
+    schema_encode(&s, buf);
+
+    Schema out;
+    int rc = schema_parse(buf, &out);
+
+    int ok = (rc == 0)
+          && (strcmp(out.name, "movies") == 0)
+          && (out.ncols == 3)
+          && (out.cols[1].width == 30)
+          && (out.row_width == 42);
+
+    printf("test_schema_enc_parse : %s\n", ok ? PASS : FAIL);
+}
+
+/* ── Test 7: schema_create and schema_find ── */
+static void test_schema_create_find() {
+    unlink(SCHEMA_FILE);  /* start fresh */
+
+    Schema s;
+    strcpy(s.name, "movies");
+    s.ncols = 2;
+    strcpy(s.cols[0].name, "id");    s.cols[0].type = TYPE_SMALLINT; s.cols[0].width = 4;
+    strcpy(s.cols[1].name, "title"); s.cols[1].type = TYPE_CHAR;     s.cols[1].width = 20;
+    s.row_width = 24;
+
+    int rc_create = schema_create(&s);
+
+    Schema found;
+    int rc_find = schema_find("movies", &found);
+
+    int ok = (rc_create == 0)
+          && (rc_find   == 0)
+          && (strcmp(found.name, "movies") == 0)
+          && (found.ncols == 2);
+
+    printf("test_schema_create_find: %s\n", ok ? PASS : FAIL);
+
+    /* Duplicate create should fail */
+    int rc_dup = schema_create(&s);
+    printf("test_schema_no_dup    : %s\n", rc_dup == -1 ? PASS : FAIL);
+}
+
 int main() {
     printf("=== db_io unit tests ===\n");
     cleanup();
@@ -107,6 +161,8 @@ int main() {
     test_write_read();
     test_alloc_blocks();
     test_init_schema();
+    test_schema_encode_parse();
+    test_schema_create_find();
 
     cleanup();
     printf("========================\n");

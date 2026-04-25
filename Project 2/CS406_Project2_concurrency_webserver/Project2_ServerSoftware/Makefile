@@ -25,8 +25,8 @@ spin.cgi: spin.c
 sql_server.cgi: sql_server.o sql.o $(DB_OBJS) io_helper.o
 	$(CC) $(CFLAGS) -o sql_server.cgi sql_server.o sql.o $(DB_OBJS) io_helper.o
 
-db_test: db_test.o $(DB_OBJS)
-	$(CC) $(CFLAGS) -o db_test db_test.o $(DB_OBJS)
+db_test: db_test.o sql.o $(DB_OBJS)
+	$(CC) $(CFLAGS) -o db_test db_test.o sql.o $(DB_OBJS)
 
 .c.o:
 	$(CC) $(CFLAGS) -o $@ -c $<
