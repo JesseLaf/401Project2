@@ -180,3 +180,22 @@ void request_handle(int fd) {
       request_serve_dynamic(fd, filename, cgiargs);
     }
 }
+
+void request_handle_preread(int fd, char *filename, char *cgiargs,
+                             struct stat *sbuf, int is_static) {
+    if (is_static) {
+        if (!(S_ISREG(sbuf->st_mode)) || !(S_IRUSR & sbuf->st_mode)) {
+            request_error(fd, filename, "403", "Forbidden",
+                          "server could not read this file");
+            return;
+        }
+        request_serve_static(fd, filename, sbuf->st_size);
+    } else {
+        if (!(S_ISREG(sbuf->st_mode)) || !(S_IXUSR & sbuf->st_mode)) {
+            request_error(fd, filename, "403", "Forbidden",
+                          "server could not run this CGI program");
+            return;
+        }
+        request_serve_dynamic(fd, filename, cgiargs);
+    }
+}
