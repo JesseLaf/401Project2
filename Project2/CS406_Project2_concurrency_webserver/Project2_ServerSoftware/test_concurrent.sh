@@ -39,21 +39,21 @@ query() {
 
 echo "=== Concurrency Tests ==="
 
-# ── Test 1: server starts and responds with new flags ────────────────
+# Test 1: server starts and responds with new flags 
 start_server 2 4 FIFO
 R=$(query "/spin.cgi?1")
 echo "$R" | grep -q "spun" && pass "Server starts with -t -b -s flags" \
                              || fail "Server starts with -t -b -s flags" "$R"
 stop_server
 
-# ── Test 2: default args still work ──────────────────────────────────
+# Test 2: default args still work 
 start_server 1 1 FIFO
 R=$(query "/spin.cgi?1")
 echo "$R" | grep -q "spun" && pass "Default args work" \
                              || fail "Default args work" "$R"
 stop_server
 
-# ── Test 3: FIFO — 4 concurrent requests complete correctly ──────────
+# Test 3: FIFO — 4 concurrent requests complete correctly
 start_server 4 8 FIFO
 TMPDIR_TEST=$(mktemp -d)
 START=$(date +%s)
@@ -80,7 +80,7 @@ done
 stop_server
 rm -rf "$TMPDIR_TEST"
 
-# ── Test 4: SFF — requests complete correctly ─────────────────────────
+# Test 4: SFF — requests complete correctly
 start_server 4 8 SFF
 TMPDIR_TEST=$(mktemp -d)
 START=$(date +%s)
@@ -107,7 +107,7 @@ done
 stop_server
 rm -rf "$TMPDIR_TEST"
 
-# ── Test 5: SFF ordering — small file served before large file ────────
+# Test 5: SFF ordering — small file served before large file
 echo "x" > small.html
 python3 -c "print('x' * 100000)" > large.html
 
@@ -130,7 +130,7 @@ stop_server
 rm -f small.html large.html
 rm -rf "$TMPDIR_TEST"
 
-# ── Test 6: buffer fills and drains correctly ─────────────────────────
+# Test 6: buffer fills and drains correctly
 start_server 2 4 FIFO
 TMPDIR_TEST=$(mktemp -d)
 
@@ -150,7 +150,7 @@ done
 stop_server
 rm -rf "$TMPDIR_TEST"
 
-# ── Test 7: single thread handles sequential requests ─────────────────
+# Test 7: single thread handles sequential requests 
 start_server 1 2 FIFO
 R1=$(query "/spin.cgi?1")
 R2=$(query "/spin.cgi?1")
@@ -159,6 +159,6 @@ echo "$R1" | grep -q "spun" && echo "$R2" | grep -q "spun" \
     || fail "Single thread handles sequential requests" ""
 stop_server
 
-# ── Summary ───────────────────────────────────────────────────────────
+# Summary 
 echo "========================="
 echo "PASSED: $PASS  FAILED: $FAIL"
